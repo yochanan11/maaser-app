@@ -8,12 +8,9 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DB_SCHEMA
+        value: maaser
       - key: APP_PASSWORD
         sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: maaser-db
-          property: connectionString
-databases:
-  - name: maaser-db
-    plan: free
+        sync: false

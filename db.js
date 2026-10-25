@@ -5,10 +5,15 @@ let impl;
 if (url) {
   const { default: pg } = await import('pg');
   const external = /@[^/]*\./.test(url) && !url.includes('localhost');
+  // DB_SCHEMA מאפשר לחלוק בסיס נתונים קיים בלי להתערב בטבלאות של אפליקציה אחרת
+  const schema = process.env.DB_SCHEMA;
+  if (schema && !/^[a-z_][a-z0-9_]*$/.test(schema)) throw new Error('DB_SCHEMA לא תקין');
   const pool = new pg.Pool({
     connectionString: url,
     ssl: external ? { rejectUnauthorized: false } : false,
+    ...(schema && { options: `-c search_path=${schema}` }),
   });
+  if (schema) await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
   const conv = (s) => { let i = 0; return s.replace(/\?/g, () => '$' + ++i); };
   impl = {
     all: async (s, p = []) => (await pool.query(conv(s), p)).rows,
