@@ -53,7 +53,12 @@ export async function init() {
     id ${id}, date TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', details TEXT DEFAULT '',
     amount DOUBLE PRECISION NOT NULL, balance DOUBLE PRECISION, ref TEXT DEFAULT '',
     category_id INTEGER, auto INTEGER NOT NULL DEFAULT 0, pct DOUBLE PRECISION NOT NULL DEFAULT 10,
-    hash TEXT NOT NULL UNIQUE)`);
+    hash TEXT NOT NULL UNIQUE,
+    source TEXT NOT NULL DEFAULT 'bank', card TEXT NOT NULL DEFAULT '', matched INTEGER NOT NULL DEFAULT 0)`);
+  // מסדי נתונים שנוצרו לפני העמודות האלה (כשהעמודה קיימת השגיאה מתעלמת)
+  for (const col of ["source TEXT NOT NULL DEFAULT 'bank'", "card TEXT NOT NULL DEFAULT ''", 'matched INTEGER NOT NULL DEFAULT 0']) {
+    try { await impl.exec(`ALTER TABLE tx ADD COLUMN ${col}`); } catch { /* כבר קיימת */ }
+  }
   await impl.exec(`CREATE TABLE IF NOT EXISTS recurring (
     id ${id}, amount DOUBLE PRECISION NOT NULL, day INTEGER NOT NULL,
     recipient TEXT DEFAULT '', category TEXT DEFAULT '', note TEXT DEFAULT '',

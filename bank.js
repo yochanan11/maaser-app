@@ -5,7 +5,7 @@ import { db } from './db.js';
 
 const unxml = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
 const texts = (xml) => [...xml.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((m) => unxml(m[1])).join('');
-const squash = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
+export const squash = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 const pad = (n) => String(n).padStart(2, '0');
 
 function toIsoDate(v) {
@@ -23,9 +23,11 @@ function toIsoDate(v) {
 // מסיר מספרי זהות ומספרי חשבון ארוכים כדי שלא יישמרו באפליקציה
 const redact = (s) => squash(String(s ?? '').replace(/(מזהה|מח-ן:?|ח-ן:?)\s*\d+/g, '').replace(/\b\d{7,}\b/g, ''));
 
-export function parseBankXlsx(buffer) {
+// קורא את הגיליון הראשון לשורות של {עמודה: ערך}
+export function readSheet(buffer) {
   const zip = new AdmZip(buffer);
-  const read = (n) => zip.getEntry(n)?.getData().toString('utf8') ?? '';
+  // חלק מהקבצים משתמשים בקידומת x: לתגיות (x:row), מסירים אותה
+  const read = (n) => (zip.getEntry(n)?.getData().toString('utf8') ?? '').replace(/<(\/?)[a-z]+:(?=[a-zA-Z])/g, '<$1');
   const shared = [...read('xl/sharedStrings.xml').matchAll(/<si>([\s\S]*?)<\/si>/g)].map((m) => texts(m[1]));
   const sheet = zip.getEntries().map((e) => e.entryName).filter((n) => /^xl\/worksheets\/sheet\d+\.xml$/.test(n))
     .map((n) => read(n)).find((x) => /<row /.test(x));
@@ -41,6 +43,11 @@ export function parseBankXlsx(buffer) {
     }
     rows.push(row);
   }
+  return rows;
+}
+
+export function parseBankXlsx(buffer) {
+  const rows = readSheet(buffer);
   const hi = rows.findIndex((r) => Object.values(r).map(squash).includes('תאריך') && Object.values(r).map(squash).includes('הפעולה'));
   if (hi < 0) throw new Error('פורמט הקובץ לא מוכר. צריך עמודות תאריך והפעולה');
   const col = {};
@@ -94,7 +101,7 @@ export async function importRows(rows) {
       [r.date, r.description, details, amount, r.balance, squash(r.ref), rule ? rule.category_id : null, rule ? 1 : 0, hash]);
     added++;
   }
-  return { added, skipped, auto, uncategorized: (await db.all('SELECT id FROM tx WHERE category_id IS NULL')).length };
+  return { added, skipped, auto, uncategorized: (await db.all('SELECT id FROM tx WHERE category_id IS NULL AND matched = 0')).length };
 }
 
 // קובע קטגוריה לכל התנועות בשם הזה, ושומר כלל לייבוא הבא

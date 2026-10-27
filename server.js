@@ -1,8 +1,10 @@
+import 'express-async-errors';
 import express from 'express';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { db, init } from './db.js';
+import { importCardFile, isCardFile } from './cards.js';
 import { parseBankXlsx, importRows, seedCategories, categorizeDescription } from './bank.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -89,12 +91,22 @@ app.get('/api/data', async (req, res) => {
 // ייבוא קובץ בנק (xlsx שמגיע כ-base64)
 app.post('/api/import', async (req, res) => {
   try {
-    const rows = parseBankXlsx(Buffer.from(String(req.body.data || ''), 'base64'));
-    res.json({ rows: rows.length, ...(await importRows(rows)) });
+    const buf = Buffer.from(String(req.body.data || ''), 'base64');
+    if (isCardFile(buf)) return res.json({ kind: 'card', ...(await importCardFile(buf)) });
+    const rows = parseBankXlsx(buf);
+    res.json({ kind: 'bank', rows: rows.length, ...(await importRows(rows)) });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 app.post('/api/categorize', async (req, res) => {
   await categorizeDescription(String(req.body.description), Number(req.body.category_id));
+  res.json({ ok: true });
+});
+
+// מחיקת קטגוריה: התנועות שלה חוזרות ל"לא מסווג" וכללי הסיווג שלה נמחקים
+app.delete('/api/category/:id', async (req, res) => {
+  await db.run('UPDATE tx SET category_id = NULL, auto = 0 WHERE category_id = ?', [req.params.id]);
+  await db.run('DELETE FROM rule WHERE category_id = ?', [req.params.id]);
+  await db.run('DELETE FROM category WHERE id = ?', [req.params.id]);
   res.json({ ok: true });
 });
 

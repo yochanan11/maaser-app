@@ -1,6 +1,6 @@
 'use strict';
 const $app = document.getElementById('app');
-const state = { tab: 'home', filter: 'all', txFilter: 'all', txLimit: 60, data: null };
+const state = { tab: 'home', filter: 'all', txFilter: 'all', txLimit: 60, month: null, data: null };
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nf = new Intl.NumberFormat('he-IL', { maximumFractionDigits: 2 });
@@ -130,8 +130,9 @@ function homeView() {
     ...income.map((x) => ({ k: 'income', x })), ...gift.map((x) => ({ k: 'gift', x })),
   ].sort((a, b) => (a.x.date < b.x.date ? 1 : -1)).slice(0, 5);
 
-  const unc = state.data.tx.filter((x) => !x.category_id).length;
+  const unc = state.data.tx.filter((x) => !x.category_id && !x.matched).length;
   return `
+  <h1>מעשר</h1>
   ${unc ? `<div class="banner" data-review style="cursor:pointer">${unc} תנועות בנק ממתינות לסיווג. לחץ לסיווג</div>` : ''}
   ${t.left > 0.5 ? `<div class="banner">יש חוב מעשר פתוח: ${money(t.left)}</div>` : ''}
   <div class="card hero">
@@ -147,7 +148,6 @@ function homeView() {
     <div class="chip"><b>${money(t.owed)}</b><span>מעשר נדרש</span></div>
     <div class="chip"><b>${money(t.given)}</b><span>ניתן בפועל</span></div>
   </div>
-  ${expensesCard()}
   <div class="card"><h2>12 חודשים אחרונים</h2>${barsSvg(months)}
     <div class="legend"><span><i style="background:var(--soft)"></i>נדרש</span><span><i style="background:var(--green2)"></i>ניתן</span></div></div>
   ${slices.length ? `<div class="card"><h2>למי נתתי</h2>${donutSvg(slices)}</div>` : ''}
@@ -164,7 +164,7 @@ function historyView() {
   rows.sort((a, b) => (a.x.date < b.x.date ? 1 : a.x.date > b.x.date ? -1 : b.x.id - a.x.id));
   const seg = [['all', 'הכל'], ['income', 'הכנסות'], ['gift', 'מעשרות']]
     .map(([k, l]) => `<button data-filter="${k}" class="${state.filter === k ? 'on' : ''}">${l}</button>`).join('');
-  return `<h1>מעשר</h1><div class="seg">${seg}</div>
+  return `<h2 style="margin-top:6px">היסטוריית מעשר</h2><div class="seg">${seg}</div>
   <div class="card">${rows.length ? rows.map((r) => rowHtml(r.k, r.x)).join('') : '<div class="empty">אין תנועות</div>'}</div>`;
 }
 
@@ -180,8 +180,8 @@ function recurringView() {
 }
 
 function render() {
-  const body = { home: homeView, tx: txView, history: historyView, recurring: recurringView }[state.tab]();
-  const tabs = [['home', I.home, 'לוח בקרה'], ['tx', I.list, 'תנועות'], ['history', I.heart, 'מעשר'], ['recurring', I.repeat, 'קבע']];
+  const body = { home: overviewView, tx: txView, history: () => homeView() + historyView(), recurring: recurringView }[state.tab]();
+  const tabs = [['home', I.chart, 'סקירה'], ['tx', I.list, 'תנועות'], ['history', I.heart, 'מעשר'], ['recurring', I.repeat, 'קבע']];
   $app.innerHTML = body + `<button class="fab" id="fab" aria-label="הוספה">${I.plus}</button>
   <nav><div class="in">${tabs.map(([k, icon, l]) => `<button data-tab="${k}" class="${state.tab === k ? 'on' : ''}">${icon}${l}</button>`).join('')}</div></nav>`;
 }
@@ -273,12 +273,14 @@ function openAdd() {
 
 // ---------- אירועים ----------
 $app.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-tab],[data-filter],[data-txfilter],[data-edit],[data-review],[data-more],#fab,[data-stop]');
+  const t = e.target.closest('[data-tab],[data-filter],[data-txfilter],[data-edit],[data-review],[data-more],[data-month],[data-cats],#fab,[data-stop]');
   if (!t) return;
   if (t.matches('[data-stop]')) return;
   if (t.dataset.tab) { state.tab = t.dataset.tab; render(); scrollTo(0, 0); }
   else if (t.dataset.filter) { state.filter = t.dataset.filter; render(); }
   else if (t.dataset.txfilter) { state.txFilter = t.dataset.txfilter; state.txLimit = 60; render(); }
+  else if (t.dataset.month) { state.month = t.dataset.month; render(); }
+  else if ('cats' in t.dataset) openCategories();
   else if ('review' in t.dataset) openReview();
   else if ('more' in t.dataset) { state.txLimit += 60; render(); }
   else if (t.id === 'fab') openAdd();
