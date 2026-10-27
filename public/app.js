@@ -175,13 +175,13 @@ function recurringView() {
     <div class="m"><b>${esc(r.recipient || 'הוראת קבע')}</b><small>ב־${r.day} בחודש${r.category ? ' · ' + esc(r.category) : ''}${r.note ? ' · ' + esc(r.note) : ''}</small></div>
     <div class="amt g">${money(r.amount)}</div>
     <label class="sw" data-stop><input type="checkbox" data-toggle="${r.id}" ${r.active ? 'checked' : ''}><span></span></label></div>`).join('');
-  return `<h1>הוראות קבע</h1><p class="muted" style="margin-top:-6px">נוספות אוטומטית לרשימת המעשרות בכל חודש, ביום שהגדרת.</p>
+  return `<h2 style="margin-top:18px">הוראות קבע של מעשר</h2><p class="muted" style="margin-top:-6px">נוספות אוטומטית לרשימת המעשרות בכל חודש, ביום שהגדרת.</p>
   <div class="card">${rows || '<div class="empty">אין הוראות קבע</div>'}</div>`;
 }
 
 function render() {
-  const body = { home: overviewView, tx: txView, history: () => homeView() + historyView(), recurring: recurringView }[state.tab]();
-  const tabs = [['home', I.chart, 'סקירה'], ['tx', I.list, 'תנועות'], ['history', I.heart, 'מעשר'], ['recurring', I.repeat, 'קבע']];
+  const body = { home: overviewView, tx: txView, cards: cardsView, analysis: analysisView, history: () => homeView() + historyView() + recurringView() }[state.tab]();
+  const tabs = [['home', I.chart, 'סקירה'], ['tx', I.list, 'תנועות'], ['cards', I.card, 'כרטיסים'], ['analysis', I.spark, 'ניתוח'], ['history', I.heart, 'מעשר']];
   $app.innerHTML = body + `<button class="fab" id="fab" aria-label="הוספה">${I.plus}</button>
   <nav><div class="in">${tabs.map(([k, icon, l]) => `<button data-tab="${k}" class="${state.tab === k ? 'on' : ''}">${icon}${l}</button>`).join('')}</div></nav>`;
 }
@@ -273,12 +273,14 @@ function openAdd() {
 
 // ---------- אירועים ----------
 $app.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-tab],[data-filter],[data-txfilter],[data-edit],[data-review],[data-more],[data-month],[data-cats],#fab,[data-stop]');
+  const t = e.target.closest('[data-tab],[data-filter],[data-txfilter],[data-edit],[data-review],[data-more],[data-month],[data-cats],[data-q],#fab,[data-stop]');
   if (!t) return;
   if (t.matches('[data-stop]')) return;
+  if (t.tagName === 'A') e.preventDefault();
   if (t.dataset.tab) { state.tab = t.dataset.tab; render(); scrollTo(0, 0); }
   else if (t.dataset.filter) { state.filter = t.dataset.filter; render(); }
   else if (t.dataset.txfilter) { state.txFilter = t.dataset.txfilter; state.txLimit = 60; render(); }
+  else if (t.dataset.q) { document.getElementById('askq').value = t.dataset.q; askAI(t.dataset.q); }
   else if (t.dataset.month) { state.month = t.dataset.month; render(); }
   else if ('cats' in t.dataset) openCategories();
   else if ('review' in t.dataset) openReview();
@@ -288,6 +290,12 @@ $app.addEventListener('click', async (e) => {
     const kind = t.dataset.edit, x = state.data[kind].find((r) => r.id == t.dataset.id);
     ({ income: formIncome, gift: formGift, recurring: formRecurring, tx: formTx })[kind](x);
   }
+});
+$app.addEventListener('submit', (e) => {
+  if (e.target.id !== 'askform') return;
+  e.preventDefault();
+  const q = document.getElementById('askq').value.trim();
+  if (q) askAI(q);
 });
 $app.addEventListener('change', async (e) => {
   if (e.target.id === 'file' && e.target.files[0]) { await importFile(e.target.files[0]); e.target.value = ''; return; }

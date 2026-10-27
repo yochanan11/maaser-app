@@ -48,7 +48,7 @@ app.use('/api', (req, res, next) => (valid(cookie(req, 'auth')) ? next() : res.s
 const TABLES = {
   income: ['date', 'amount', 'description', 'pct'],
   gift: ['date', 'amount', 'recipient', 'category', 'note'],
-  category: ['name', 'kind'],
+  category: ['name', 'kind', 'grp'],
   tx: ['category_id', 'auto', 'pct', 'date', 'description', 'details', 'amount'],
   recurring: ['amount', 'day', 'recipient', 'category', 'note', 'start_date', 'active'],
 };
@@ -95,7 +95,7 @@ app.post('/api/import', async (req, res) => {
     if (isCardFile(buf)) return res.json({ kind: 'card', ...(await importCardFile(buf)) });
     const rows = parseBankXlsx(buf);
     res.json({ kind: 'bank', rows: rows.length, ...(await importRows(rows)) });
-  } catch (e) { res.status(400).json({ error: e.message }); }
+  } catch (e) { console.error('import failed:', e); res.status(400).json({ error: e.message }); }
 });
 app.post('/api/categorize', async (req, res) => {
   await categorizeDescription(String(req.body.description), Number(req.body.category_id));
@@ -108,6 +108,31 @@ app.delete('/api/category/:id', async (req, res) => {
   await db.run('DELETE FROM rule WHERE category_id = ?', [req.params.id]);
   await db.run('DELETE FROM category WHERE id = ?', [req.params.id]);
   res.json({ ok: true });
+});
+
+// שאלות חופשיות על הנתונים. נשלח סיכום מצומצם (לא תנועות גולמיות) למודל, ורק אם הוגדר מפתח בשרת
+app.post('/api/ask', async (req, res) => {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return res.status(501).json({ error: 'לא הוגדר מפתח ANTHROPIC_API_KEY בשרת' });
+  const question = String(req.body.question || '').slice(0, 500);
+  const context = JSON.stringify(req.body.context || {}).slice(0, 120000);
+  if (!question) return res.status(400).json({ error: 'חסרה שאלה' });
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5',
+      max_tokens: 1200,
+      system: 'אתה אנליסט פיננסי אישי. ענה בעברית, בקצרה ובמדויק, רק לפי הנתונים שניתנו. סכומים בשקלים. אם הנתונים לא מספיקים לתשובה, אמור זאת וציין מה חסר. אל תמציא נתונים.',
+      messages: [{ role: 'user', content: `נתונים (JSON מסוכם):
+${context}
+
+שאלה: ${question}` }],
+    }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { console.error('ask failed', r.status, j); return res.status(502).json({ error: j.error?.message || 'שגיאה משירות המודל' }); }
+  res.json({ answer: (j.content || []).map((c) => c.text || '').join('').trim() });
 });
 
 const clean = (table, body) => TABLES[table].filter((k) => k in body).map((k) => [k, body[k]]);

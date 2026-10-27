@@ -46,7 +46,8 @@ export async function init() {
     recipient TEXT DEFAULT '', category TEXT DEFAULT '', note TEXT DEFAULT '',
     recurring_id INTEGER)`);
   await impl.exec(`CREATE TABLE IF NOT EXISTS category (
-    id ${id}, name TEXT NOT NULL UNIQUE, kind TEXT NOT NULL DEFAULT 'expense')`);
+    id ${id}, name TEXT NOT NULL UNIQUE, kind TEXT NOT NULL DEFAULT 'expense', grp TEXT NOT NULL DEFAULT '')`);
+  try { await impl.exec("ALTER TABLE category ADD COLUMN grp TEXT NOT NULL DEFAULT ''"); } catch { /* כבר קיימת */ }
   await impl.exec(`CREATE TABLE IF NOT EXISTS rule (
     id ${id}, pattern TEXT NOT NULL UNIQUE, category_id INTEGER NOT NULL)`);
   await impl.exec(`CREATE TABLE IF NOT EXISTS tx (

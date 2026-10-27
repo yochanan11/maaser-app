@@ -149,3 +149,18 @@ input:focus{border-color:var(--green2);box-shadow:0 0 0 3px color-mix(in srgb,va
 .dot.out{background:var(--soft);color:var(--muted)}
 .chip b{white-space:nowrap}
 @media (max-width:420px){.chip b{font-size:.95rem}}
+
+/* כרטיסים, טבלת התאמה, שאלות */
+.tablewrap{overflow-x:auto;margin-top:8px}
+table.recon{width:100%;border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums}
+table.recon th{color:var(--muted);font-weight:600;text-align:start;padding:6px 6px;border-bottom:1px solid var(--line)}
+table.recon td{padding:7px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ask form{display:flex;gap:8px}
+.ask input{flex:1}
+.ask .btn{flex:0 0 auto;padding:12px 16px}
+.chips-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chips-row button{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:.8rem}
+.askout{white-space:pre-wrap;margin-top:12px;line-height:1.55;font-size:.95rem}
+.askout:empty{display:none}
+.catrow .grp{grid-column:1/-1;padding:8px 12px;font-size:14px}
+nav button{font-size:.66rem}

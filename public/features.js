@@ -59,6 +59,8 @@ function overviewView() {
 
   const list = Object.entries(s.byCat).sort((a, b) => b[1] - a[1]);
   const max = list.length ? list[0][1] : 1;
+  const prevMonth = months[months.indexOf(state.month) + 1];
+  const prev = prevMonth ? monthStats(prevMonth).byCat : null;
   const chips = months.map((m) => `<button data-month="${m}" class="${m === state.month ? 'on' : ''}">${MONTHS[Number(m.slice(5)) - 1]} ${m.slice(2, 4)}</button>`).join('');
 
   return `<h1>סקירה כללית</h1>
@@ -73,7 +75,7 @@ function overviewView() {
       <div class="chip"><span>נשאר</span><b style="color:${s.left < 0 ? 'var(--red)' : 'var(--green)'}">${signed(s.left)}</b></div>
     </div>
     <div class="card"><h2>הוצאות לפי קטגוריה</h2>
-      ${list.map(([n, v]) => `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:.88rem"><span>${esc(n)}</span><b class="amt">${money(v)}</b></div>
+      ${list.map(([n, v]) => `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:.88rem"><span>${esc(n)}${prev && prev[n] ? ` <small class="muted" style="color:${v > prev[n] ? 'var(--red)' : 'var(--green)'}">${v > prev[n] ? '▲' : '▼'} ${Math.round(Math.abs(v - prev[n]) / prev[n] * 100)}%</small>` : ''}</span><b class="amt">${money(v)}</b></div>
         <div class="bar"><i style="width:${Math.max(3, (v / max) * 100)}%"></i></div></div>`).join('') || '<div class="empty">אין הוצאות בחודש הזה</div>'}
       ${s.saving ? `<div class="muted" style="font-size:.85rem;margin-top:6px">חיסכון ופנסיה: ${money(s.saving)}</div>` : ''}</div>
     <div class="grid-col">
@@ -149,7 +151,9 @@ function openCategories() {
       ${state.data.category.map((c) => `<div class="catrow" data-id="${c.id}">
         <input value="${esc(c.name)}" data-f="name" aria-label="שם">
         <select data-f="kind" aria-label="סוג">${Object.entries(KIND_LABEL).map(([k, l]) => `<option value="${k}" ${c.kind === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
-        <button class="iconbtn" data-del title="מחיקה (${used[c.id] || 0} תנועות)">✕</button></div>`).join('')}
+        <button class="iconbtn" data-del title="מחיקה (${used[c.id] || 0} תנועות)">✕</button>
+        <input class="grp" value="${esc(c.grp || '')}" data-f="grp" placeholder="קבוצה (למשל: רכב)" list="grps" aria-label="קבוצה"></div>`).join('')}
+      <datalist id="grps">${[...new Set(state.data.category.map((c) => c.grp).filter(Boolean))].map((g) => `<option value="${esc(g)}">`).join('')}</datalist>
       <div class="catrow" data-new><input placeholder="קטגוריה חדשה" data-f="name"><select data-f="kind">${Object.entries(KIND_LABEL).map(([k, l]) => `<option value="${k}" ${k === 'expense' ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <button class="iconbtn add" data-add>＋</button></div>
       <div class="err" id="err"></div>
