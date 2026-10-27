@@ -3,7 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "start": "node server.js", "dev": "node server.js" },
-  "engines": { "node": ">=22.5" },
-  "dependencies": { "express": "^4.21.2", "pg": "^8.13.1" }
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.1",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
 }

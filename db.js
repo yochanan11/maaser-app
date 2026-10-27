@@ -45,6 +45,15 @@ export async function init() {
     id ${id}, date TEXT NOT NULL, amount DOUBLE PRECISION NOT NULL,
     recipient TEXT DEFAULT '', category TEXT DEFAULT '', note TEXT DEFAULT '',
     recurring_id INTEGER)`);
+  await impl.exec(`CREATE TABLE IF NOT EXISTS category (
+    id ${id}, name TEXT NOT NULL UNIQUE, kind TEXT NOT NULL DEFAULT 'expense')`);
+  await impl.exec(`CREATE TABLE IF NOT EXISTS rule (
+    id ${id}, pattern TEXT NOT NULL UNIQUE, category_id INTEGER NOT NULL)`);
+  await impl.exec(`CREATE TABLE IF NOT EXISTS tx (
+    id ${id}, date TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', details TEXT DEFAULT '',
+    amount DOUBLE PRECISION NOT NULL, balance DOUBLE PRECISION, ref TEXT DEFAULT '',
+    category_id INTEGER, auto INTEGER NOT NULL DEFAULT 0, pct DOUBLE PRECISION NOT NULL DEFAULT 10,
+    hash TEXT NOT NULL UNIQUE)`);
   await impl.exec(`CREATE TABLE IF NOT EXISTS recurring (
     id ${id}, amount DOUBLE PRECISION NOT NULL, day INTEGER NOT NULL,
     recipient TEXT DEFAULT '', category TEXT DEFAULT '', note TEXT DEFAULT '',

@@ -1,6 +1,6 @@
 'use strict';
 const $app = document.getElementById('app');
-const state = { tab: 'home', filter: 'all', data: null };
+const state = { tab: 'home', filter: 'all', txFilter: 'all', txLimit: 60, data: null };
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nf = new Intl.NumberFormat('he-IL', { maximumFractionDigits: 2 });
@@ -27,11 +27,25 @@ async function api(method, url, body) {
 }
 
 // ---------- חישובים ----------
+const catKind = () => Object.fromEntries(state.data.category.map((c) => [c.id, c.kind]));
+const catName = () => Object.fromEntries(state.data.category.map((c) => [c.id, c.name]));
+
+// כל מה שמשפיע על המעשר: הכנסות ידניות ומהבנק, ומעשרות ידניים ומהבנק
+function flows() {
+  const { income, gift, tx } = state.data, kind = catKind(), out = [];
+  income.forEach((i) => out.push({ date: i.date, earned: i.amount, owed: (i.amount * i.pct) / 100, given: 0 }));
+  gift.forEach((g) => out.push({ date: g.date, earned: 0, owed: 0, given: g.amount }));
+  tx.forEach((t) => {
+    const k = kind[t.category_id];
+    if (k === 'income' && t.amount > 0) out.push({ date: t.date, earned: t.amount, owed: (t.amount * t.pct) / 100, given: 0 });
+    else if (k === 'tithe') out.push({ date: t.date, earned: 0, owed: 0, given: -t.amount });
+  });
+  return out;
+}
+
 function totals() {
-  const { income, gift } = state.data;
-  const earned = income.reduce((s, i) => s + i.amount, 0);
-  const owed = income.reduce((s, i) => s + (i.amount * i.pct) / 100, 0);
-  const given = gift.reduce((s, g) => s + g.amount, 0);
+  const f = flows(), sum = (k) => f.reduce((s, x) => s + x[k], 0);
+  const earned = sum('earned'), owed = sum('owed'), given = sum('given');
   return { earned, owed, given, left: owed - given };
 }
 
@@ -99,14 +113,14 @@ function rowHtml(kind, x) {
 }
 
 function homeView() {
-  const t = totals(), { income, gift, recurring } = state.data;
+  const t = totals(), { income, gift, recurring } = state.data, kinds = catKind();
   const months = lastMonths(12);
   const idx = Object.fromEntries(months.map((m) => [m.key, m]));
-  income.forEach((i) => { const m = idx[i.date.slice(0, 7)]; if (m) m.owed += (i.amount * i.pct) / 100; });
-  gift.forEach((g) => { const m = idx[g.date.slice(0, 7)]; if (m) m.given += g.amount; });
+  flows().forEach((x) => { const m = idx[x.date.slice(0, 7)]; if (m) { m.owed += x.owed; m.given += x.given; } });
 
   const by = {};
   gift.forEach((g) => { const k = g.recipient || g.category || 'אחר'; by[k] = (by[k] || 0) + g.amount; });
+  state.data.tx.filter((x) => kinds[x.category_id] === 'tithe').forEach((x) => { by[x.description] = (by[x.description] || 0) - x.amount; });
   let slices = Object.entries(by).map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v);
   if (slices.length > 5) { const rest = slices.slice(5).reduce((s, x) => s + x.v, 0); slices = [...slices.slice(0, 5), { k: 'אחר', v: rest }]; }
 
@@ -116,7 +130,9 @@ function homeView() {
     ...income.map((x) => ({ k: 'income', x })), ...gift.map((x) => ({ k: 'gift', x })),
   ].sort((a, b) => (a.x.date < b.x.date ? 1 : -1)).slice(0, 5);
 
+  const unc = state.data.tx.filter((x) => !x.category_id).length;
   return `
+  ${unc ? `<div class="banner" data-review style="cursor:pointer">${unc} תנועות בנק ממתינות לסיווג. לחץ לסיווג</div>` : ''}
   ${t.left > 0.5 ? `<div class="banner">יש חוב מעשר פתוח: ${money(t.left)}</div>` : ''}
   <div class="card hero">
     <div>
@@ -131,6 +147,7 @@ function homeView() {
     <div class="chip"><b>${money(t.owed)}</b><span>מעשר נדרש</span></div>
     <div class="chip"><b>${money(t.given)}</b><span>ניתן בפועל</span></div>
   </div>
+  ${expensesCard()}
   <div class="card"><h2>12 חודשים אחרונים</h2>${barsSvg(months)}
     <div class="legend"><span><i style="background:var(--soft)"></i>נדרש</span><span><i style="background:var(--green2)"></i>ניתן</span></div></div>
   ${slices.length ? `<div class="card"><h2>למי נתתי</h2>${donutSvg(slices)}</div>` : ''}
@@ -147,7 +164,7 @@ function historyView() {
   rows.sort((a, b) => (a.x.date < b.x.date ? 1 : a.x.date > b.x.date ? -1 : b.x.id - a.x.id));
   const seg = [['all', 'הכל'], ['income', 'הכנסות'], ['gift', 'מעשרות']]
     .map(([k, l]) => `<button data-filter="${k}" class="${state.filter === k ? 'on' : ''}">${l}</button>`).join('');
-  return `<h1>היסטוריה</h1><div class="seg">${seg}</div>
+  return `<h1>מעשר</h1><div class="seg">${seg}</div>
   <div class="card">${rows.length ? rows.map((r) => rowHtml(r.k, r.x)).join('') : '<div class="empty">אין תנועות</div>'}</div>`;
 }
 
@@ -163,8 +180,8 @@ function recurringView() {
 }
 
 function render() {
-  const body = state.tab === 'home' ? homeView() : state.tab === 'history' ? historyView() : recurringView();
-  const tabs = [['home', I.home, 'לוח בקרה'], ['history', I.list, 'היסטוריה'], ['recurring', I.repeat, 'הוראות קבע']];
+  const body = { home: homeView, tx: txView, history: historyView, recurring: recurringView }[state.tab]();
+  const tabs = [['home', I.home, 'לוח בקרה'], ['tx', I.list, 'תנועות'], ['history', I.heart, 'מעשר'], ['recurring', I.repeat, 'קבע']];
   $app.innerHTML = body + `<button class="fab" id="fab" aria-label="הוספה">${I.plus}</button>
   <nav><div class="in">${tabs.map(([k, icon, l]) => `<button data-tab="${k}" class="${state.tab === k ? 'on' : ''}">${icon}${l}</button>`).join('')}</div></nav>`;
 }
@@ -256,18 +273,22 @@ function openAdd() {
 
 // ---------- אירועים ----------
 $app.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-tab],[data-filter],[data-edit],#fab,[data-stop]');
+  const t = e.target.closest('[data-tab],[data-filter],[data-txfilter],[data-edit],[data-review],[data-more],#fab,[data-stop]');
   if (!t) return;
   if (t.matches('[data-stop]')) return;
   if (t.dataset.tab) { state.tab = t.dataset.tab; render(); scrollTo(0, 0); }
   else if (t.dataset.filter) { state.filter = t.dataset.filter; render(); }
+  else if (t.dataset.txfilter) { state.txFilter = t.dataset.txfilter; state.txLimit = 60; render(); }
+  else if ('review' in t.dataset) openReview();
+  else if ('more' in t.dataset) { state.txLimit += 60; render(); }
   else if (t.id === 'fab') openAdd();
   else if (t.dataset.edit) {
     const kind = t.dataset.edit, x = state.data[kind].find((r) => r.id == t.dataset.id);
-    ({ income: formIncome, gift: formGift, recurring: formRecurring })[kind](x);
+    ({ income: formIncome, gift: formGift, recurring: formRecurring, tx: formTx })[kind](x);
   }
 });
 $app.addEventListener('change', async (e) => {
+  if (e.target.id === 'file' && e.target.files[0]) { await importFile(e.target.files[0]); e.target.value = ''; return; }
   if (e.target.dataset.toggle) {
     await api('PUT', `/api/recurring/${e.target.dataset.toggle}`, { active: e.target.checked ? 1 : 0 });
     await reload();

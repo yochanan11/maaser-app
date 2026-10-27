@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { db, init } from './db.js';
+import { parseBankXlsx, importRows, seedCategories, categorizeDescription } from './bank.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PASSWORD = process.env.APP_PASSWORD || (process.env.NODE_ENV === 'production' ? '' : 'dev');
@@ -22,7 +23,7 @@ const cookie = (req, name) =>
   (req.headers.cookie || '').split(/;\s*/).map((c) => c.split('=')).find(([k]) => k === name)?.[1];
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '12mb' }));
 
 app.post('/api/login', (req, res) => {
   const a = Buffer.from(String(req.body.password || ''));
@@ -45,6 +46,8 @@ app.use('/api', (req, res, next) => (valid(cookie(req, 'auth')) ? next() : res.s
 const TABLES = {
   income: ['date', 'amount', 'description', 'pct'],
   gift: ['date', 'amount', 'recipient', 'category', 'note'],
+  category: ['name', 'kind'],
+  tx: ['category_id', 'auto', 'pct', 'date', 'description', 'details', 'amount'],
   recurring: ['amount', 'day', 'recipient', 'category', 'note', 'start_date', 'active'],
 };
 
@@ -78,7 +81,21 @@ app.get('/api/data', async (req, res) => {
     income: await db.all('SELECT * FROM income ORDER BY date DESC, id DESC'),
     gift: await db.all('SELECT * FROM gift ORDER BY date DESC, id DESC'),
     recurring: await db.all('SELECT * FROM recurring ORDER BY day, id'),
+    category: await db.all('SELECT * FROM category ORDER BY id'),
+    tx: await db.all('SELECT * FROM tx ORDER BY date DESC, id DESC'),
   });
+});
+
+// ייבוא קובץ בנק (xlsx שמגיע כ-base64)
+app.post('/api/import', async (req, res) => {
+  try {
+    const rows = parseBankXlsx(Buffer.from(String(req.body.data || ''), 'base64'));
+    res.json({ rows: rows.length, ...(await importRows(rows)) });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.post('/api/categorize', async (req, res) => {
+  await categorizeDescription(String(req.body.description), Number(req.body.category_id));
+  res.json({ ok: true });
 });
 
 const clean = (table, body) => TABLES[table].filter((k) => k in body).map((k) => [k, body[k]]);
@@ -103,6 +120,7 @@ for (const table of Object.keys(TABLES)) {
 app.use((err, req, res, next) => { console.error(err); res.status(500).json({ error: 'שגיאת שרת' }); });
 
 await init();
+await seedCategories();
 // נתוני ההתחלה מהגיליון (רק בהרצה ראשונה על בסיס נתונים ריק)
 if (!(await db.all('SELECT id FROM income LIMIT 1')).length) {
   const d = new Date().toISOString().slice(0, 10);

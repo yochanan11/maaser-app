@@ -105,3 +105,9 @@ input:focus{border-color:var(--green2);box-shadow:0 0 0 3px color-mix(in srgb,va
 .sw span::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.15s}
 .sw input:checked+span{background:var(--green2)}
 .sw input:checked+span::after{transform:translateX(-18px)}
+
+.catgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.catbtn{padding:12px 8px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:.88rem;font-weight:600}
+.catbtn:active{background:var(--mint-bg);border-color:var(--green2)}
+.bar{height:6px;border-radius:99px;background:var(--line);margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--green2)}
