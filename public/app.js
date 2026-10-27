@@ -310,7 +310,18 @@ function renderLogin() {
   };
 }
 
-(async () => {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-  try { await reload(); } catch (e) { if (e.message !== 'unauth') $app.textContent = 'שגיאה בטעינה'; }
-})();
+// בשרת החינמי הטעינה הראשונה אחרי חוסר פעילות יכולה להיכשל בזמן שהוא מתעורר, לכן מנסים שוב
+async function boot(attempt = 0) {
+  try { await reload(); } catch (e) {
+    if (e.message === 'unauth') return;
+    if (attempt < 3) {
+      $app.innerHTML = '<div class="empty">טוען... השרת מתעורר</div>';
+      return setTimeout(() => boot(attempt + 1), 5000);
+    }
+    $app.innerHTML = `<div class="empty">שגיאה בטעינה<br><small>${esc(e.message)}</small></div><div class="btns"><button class="btn" id="retry">נסה שוב</button></div>`;
+    document.getElementById('retry').onclick = () => boot(0);
+  }
+}
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+boot();
