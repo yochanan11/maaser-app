@@ -62,29 +62,30 @@ function overviewView() {
   const prevMonth = months[months.indexOf(state.month) + 1];
   const prev = prevMonth ? monthStats(prevMonth).byCat : null;
   const chips = months.map((m) => `<button data-month="${m}" class="${m === state.month ? 'on' : ''}">${MONTHS[Number(m.slice(5)) - 1]} ${m.slice(2, 4)}</button>`).join('');
+  const subs = subscriptions().filter((x) => !x.type.startsWith('תשלומים')).slice(0, 7);
+  const recent = COUNTED_TX().slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.id - b.id)).slice(0, 9);
+  const kpi = (label, val, color) => `<div class="kpi"><span>${label}</span><b style="${color ? `color:${color}` : ''}">${val}</b></div>`;
 
-  return `<h1>סקירה כללית</h1>
+  return `<div class="topbar"><h1>סקירה כללית</h1><div class="seg months">${chips}</div></div>
   ${unc ? `<div class="banner" data-review style="cursor:pointer">${unc} תנועות ממתינות לסיווג. לחץ לסיווג</div>` : ''}
-  <div class="grid">
-    ${bal ? `<div class="card hero span"><div><div class="lbl">יתרה בחשבון הבנק</div><div class="big ${bal.value < 0 ? 'over' : ''}">${signed(bal.value)}</div>
-      <div class="sub">נכון ל־${fmtDate(bal.date)}</div></div></div>` : ''}
-    <div class="span"><div class="seg months">${chips}</div></div>
-    <div class="chips span">
-      <div class="chip"><span>הכנסות</span><b>${money(s.income)}</b></div>
-      <div class="chip"><span>הוצאות</span><b>${money(s.expense)}</b></div>
-      <div class="chip"><span>נשאר</span><b style="color:${s.left < 0 ? 'var(--red)' : 'var(--green)'}">${signed(s.left)}</b></div>
-    </div>
-    <div class="card"><h2>הוצאות לפי קטגוריה</h2>
-      ${list.map(([n, v]) => `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:.88rem"><span>${esc(n)}${prev && prev[n] ? ` <small class="muted" style="color:${v > prev[n] ? 'var(--red)' : 'var(--green)'}">${v > prev[n] ? '▲' : '▼'} ${Math.round(Math.abs(v - prev[n]) / prev[n] * 100)}%</small>` : ''}</span><b class="amt">${money(v)}</b></div>
+  <div class="kpis">
+    ${bal ? kpi(`יתרה בבנק · ${fmtDate(bal.date)}`, signed(bal.value), bal.value < 0 ? 'var(--red)' : '') : ''}
+    ${kpi('הכנסות', money(s.income))}
+    ${kpi('הוצאות', money(s.expense))}
+    ${kpi('נשאר החודש', signed(s.left), s.left < 0 ? 'var(--red)' : 'var(--green)')}
+    <div class="kpi" data-tab="history" style="cursor:pointer"><span>${t.left < 0 ? 'מעשר: נתת יותר ב־' : 'מעשר: נשאר לתת'}</span><b>${money(Math.abs(t.left))}</b></div>
+  </div>
+  <div class="dense">
+    <div class="card"><h2>הכנסות מול הוצאות</h2>${barsSvg(trend)}
+      <div class="legend"><span><i style="background:var(--soft)"></i>הכנסות</span><span><i style="background:var(--green2)"></i>הוצאות</span></div></div>
+    <div class="card"><h2>איפה הולך הכסף</h2>
+      ${list.slice(0, 9).map(([n, v]) => `<div class="catline"><div><span>${esc(n)}${prev && prev[n] ? ` <small style="color:${v > prev[n] ? 'var(--red)' : 'var(--green)'}">${v > prev[n] ? '▲' : '▼'}${Math.round(Math.abs(v - prev[n]) / prev[n] * 100)}%</small>` : ''}</span><b class="amt">${money(v)}</b></div>
         <div class="bar"><i style="width:${Math.max(3, (v / max) * 100)}%"></i></div></div>`).join('') || '<div class="empty">אין הוצאות בחודש הזה</div>'}
-      ${s.saving ? `<div class="muted" style="font-size:.85rem;margin-top:6px">חיסכון ופנסיה: ${money(s.saving)}</div>` : ''}</div>
-    <div class="grid-col">
-      <div class="card"><h2>הכנסות מול הוצאות</h2>${barsSvg(trend)}
-        <div class="legend"><span><i style="background:var(--soft)"></i>הכנסות</span><span><i style="background:var(--green2)"></i>הוצאות</span></div></div>
-      <div class="card" data-tab="history" style="cursor:pointer"><h2>מעשר</h2>
-        <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">${t.left < 0 ? 'נתת יותר ב־' : 'נשאר לתת'}</span><b style="font-size:1.4rem">${money(Math.abs(t.left))}</b></div>
-        <div class="muted" style="font-size:.82rem;margin-top:4px">נדרש ${money(t.owed)} · ניתן ${money(t.given)}</div></div>
-    </div>
+      ${s.saving ? `<div class="muted" style="font-size:.8rem;margin-top:6px">חיסכון ופנסיה: ${money(s.saving)}</div>` : ''}</div>
+    <div class="card" data-tab="analysis" style="cursor:pointer"><h2>מנויים והוצאות קבועות</h2>
+      ${subs.map((x) => `<div class="mini"><span>${esc(x.name)}<small>${x.type}</small></span><b class="amt">${money(x.monthly)}</b></div>`).join('') || '<div class="empty">עוד לא זוהו</div>'}</div>
+    <div class="card" data-tab="tx" style="cursor:pointer"><h2>תנועות אחרונות</h2>
+      ${recent.map((x) => `<div class="mini"><span>${esc(x.description)}<small>${fmtDate(x.date)}</small></span><b class="amt ${x.amount > 0 ? 'g' : ''}">${signed(x.amount)}</b></div>`).join('')}</div>
   </div>`;
 }
 
@@ -114,7 +115,7 @@ function txView() {
   </div>
   ${unc ? `<div class="banner" data-review style="cursor:pointer">${unc} תנועות ממתינות לסיווג. לחץ לסיווג אחת אחת</div>` : ''}
   <div class="seg">${seg}</div>
-  <div class="card">${rows.length ? rows.slice(0, state.txLimit).map(txRowHtml).join('') : '<div class="empty">אין תנועות. ייבא קובץ מהבנק או מכרטיס אשראי</div>'}</div>
+  <div class="card list">${rows.length ? rows.slice(0, state.txLimit).map(txRowHtml).join('') : '<div class="empty">אין תנועות. ייבא קובץ מהבנק או מכרטיס אשראי</div>'}</div>
   ${rows.length > state.txLimit ? '<div class="btns"><button class="btn sec" data-more>הצג עוד</button></div>' : ''}`;
 }
 

@@ -164,3 +164,47 @@ table.recon td{padding:7px 6px;border-bottom:1px solid var(--line);white-space:n
 .askout:empty{display:none}
 .catrow .grp{grid-column:1/-1;padding:8px 12px;font-size:14px}
 nav button{font-size:.66rem}
+
+/* דשבורד צפוף */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.topbar h1{margin:0}
+.topbar .seg{margin:0;max-width:100%}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.kpis .kpi:first-child{grid-column:1/-1}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.kpi span{display:block;font-size:.72rem;color:var(--muted);margin-bottom:3px;font-weight:600}
+.kpi b{font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dense{display:grid;grid-template-columns:1fr;gap:10px}
+.dense .card,.grid .card{margin-bottom:0}
+.catline{margin-bottom:7px}
+.catline>div:first-child{display:flex;justify-content:space-between;font-size:.86rem}
+.mini{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:.86rem}
+.mini:last-child{border-bottom:0}
+.mini span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini small{display:block;color:var(--muted);font-size:.72rem}
+.grid>h1,.grid>h2,.grid>p,.grid>.banner,.grid>.hero,.grid>.chips,.grid>.seg{grid-column:1/-1}
+@media (min-width:900px){
+  #app{max-width:1500px;padding:22px 28px 40px}
+  h1{font-size:1.5rem;margin-bottom:12px}
+  .kpis{grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px}
+  .kpis .kpi:first-child{grid-column:auto}
+  .kpi{padding:14px 16px}
+  .kpi b{font-size:1.5rem}
+  .dense{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+  .card{padding:14px 16px;border-radius:18px}
+  .row{padding:8px 0}
+  .dot{width:32px;height:32px;border-radius:10px}
+  .grid{gap:12px}
+  .hero{padding:16px 20px}
+  .hero .big{font-size:2.6rem}
+  .hero .sub{font-size:.75rem}
+  .chips{grid-template-columns:repeat(3,1fr)}
+  .card.list{column-count:2;column-gap:28px}
+  .card.list .row{break-inside:avoid}
+}
+@media (min-width:1300px){
+  .dense{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+.kpis>*{min-width:0}
+@media (min-width:900px){.kpi b{font-size:clamp(1rem,1.7vw,1.5rem)}.kpi span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}

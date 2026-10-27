@@ -180,7 +180,7 @@ function recurringView() {
 }
 
 function render() {
-  const body = { home: overviewView, tx: txView, cards: cardsView, analysis: analysisView, history: () => homeView() + historyView() + recurringView() }[state.tab]();
+  const body = { home: overviewView, tx: txView, cards: cardsView, analysis: analysisView, history: () => `<div class="grid">${homeView()}${historyView()}${recurringView()}</div>` }[state.tab]();
   const tabs = [['home', I.chart, 'סקירה'], ['tx', I.list, 'תנועות'], ['cards', I.card, 'כרטיסים'], ['analysis', I.spark, 'ניתוח'], ['history', I.heart, 'מעשר']];
   $app.innerHTML = body + `<button class="fab" id="fab" aria-label="הוספה">${I.plus}</button>
   <nav><div class="in">${tabs.map(([k, icon, l]) => `<button data-tab="${k}" class="${state.tab === k ? 'on' : ''}">${icon}${l}</button>`).join('')}</div></nav>`;
