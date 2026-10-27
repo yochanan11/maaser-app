@@ -62,10 +62,10 @@ function lastMonths(n) {
 // ---------- גרפים (SVG בלי ספריות) ----------
 function ringSvg(frac) {
   const f = Math.max(0, Math.min(1, frac)), r = 54, c = 2 * Math.PI * r;
-  return `<svg class="ring" viewBox="0 0 132 132"><circle cx="66" cy="66" r="${r}" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="11"/>
-  <circle cx="66" cy="66" r="${r}" fill="none" stroke="#5cf5c0" stroke-width="11" stroke-linecap="round"
+  return `<svg class="ring" viewBox="0 0 132 132"><circle cx="66" cy="66" r="${r}" fill="none" stroke="var(--line)" stroke-width="11"/>
+  <circle cx="66" cy="66" r="${r}" fill="none" stroke="var(--green2)" stroke-width="11" stroke-linecap="round"
    stroke-dasharray="${c * f} ${c}" ${f ? '' : 'opacity="0"'} transform="rotate(-90 66 66)"/>
-  <text x="66" y="68" text-anchor="middle" style="font-size:26px;font-weight:800;fill:#fff">${Math.round(f * 100)}%</text>
+  <text x="66" y="68" text-anchor="middle" style="font-size:26px;font-weight:800;fill:var(--ink)">${Math.round(f * 100)}%</text>
   <text x="66" y="86" text-anchor="middle">ניתן</text></svg>`;
 }
 
@@ -76,14 +76,14 @@ function barsSvg(months) {
   const bars = months.map((m, i) => {
     // עברית: הזמן זורם מימין לשמאל
     const x = (months.length - 1 - i) * bw, h1 = (m.owed / max) * ph, h2 = (m.given / max) * ph, w = bw * 0.3;
-    return `<rect x="${x + bw * 0.17}" y="${H - pb - h1}" width="${w}" height="${Math.max(h1, 0)}" rx="3" fill="var(--soft)"/>
+    return `<rect x="${x + bw * 0.17}" y="${H - pb - h1}" width="${w}" height="${Math.max(h1, 0)}" rx="3" fill="var(--owed)"/>
     <rect x="${x + bw * 0.17 + w + 2}" y="${H - pb - h2}" width="${w}" height="${Math.max(h2, 0)}" rx="3" fill="var(--green2)"/>
     <text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${m.label}</text>`;
   }).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="מעשר שנדרש מול מה שניתן לפי חודש">${bars}</svg>`;
 }
 
-const PALETTE = ['#12b886', '#6c8cff', '#ffb454', '#ff7a9a', '#b28cff', '#5fd3f3'];
+const PALETTE = ['#2f62ff', '#66ffa3', '#ffb454', '#ff7a9a', '#8b6bff', '#5fd3f3'];
 function donutSvg(slices) {
   const total = slices.reduce((s, x) => s + x.v, 0);
   if (!total) return '';
@@ -149,7 +149,7 @@ function homeView() {
     <div class="chip"><b>${money(t.given)}</b><span>ניתן בפועל</span></div>
   </div>
   <div class="card"><h2>12 חודשים אחרונים</h2>${barsSvg(months)}
-    <div class="legend"><span><i style="background:var(--soft)"></i>נדרש</span><span><i style="background:var(--green2)"></i>ניתן</span></div></div>
+    <div class="legend"><span><i style="background:var(--owed)"></i>נדרש</span><span><i style="background:var(--green2)"></i>ניתן</span></div></div>
   ${slices.length ? `<div class="card"><h2>למי נתתי</h2>${donutSvg(slices)}</div>` : ''}
   <div class="card"><h2>הוראות קבע</h2>
     <div class="muted">${recurring.filter((r) => r.active).length} פעילות · ${money(monthly)} בחודש</div></div>

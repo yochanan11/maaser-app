@@ -35,7 +35,7 @@ function cardRecon() {
 }
 
 const STATUS = {
-  ok: ['תואם', 'var(--green)'], diff: ['הפרש', 'var(--red)'],
+  ok: ['תואם', 'var(--pos)'], diff: ['הפרש', 'var(--red)'],
   nodetail: ['אין פירוט', 'var(--gold)'], nobank: ['לא נמצא בבנק', 'var(--muted)'],
 };
 
@@ -52,7 +52,7 @@ function cardsView() {
     const max = list.length ? Math.abs(list[0][1]) : 1;
     return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <h2 style="margin:0">${c.name} · ${c.id}</h2>
-        <span class="tag" style="margin:0;color:${c.hasDetail ? 'var(--green)' : 'var(--gold)'}">${c.hasDetail ? `${c.ok} מתוך ${c.rows.length} ימים תואמים` : 'אין פירוט, רק חיובי בנק'}</span></div>
+        <span class="tag" style="margin:0;color:${c.hasDetail ? 'var(--pos)' : 'var(--gold)'}">${c.hasDetail ? `${c.ok} מתוך ${c.rows.length} ימים תואמים` : 'אין פירוט, רק חיובי בנק'}</span></div>
       ${c.hasDetail ? `<div class="muted" style="font-size:.85rem;margin-bottom:10px">${c.n} עסקאות · סה״כ ${money(c.total)}</div>
         ${list.map(([n, v]) => `<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:.86rem"><span>${esc(n)}</span><b class="amt">${money(v)}</b></div><div class="bar"><i style="width:${Math.max(3, (Math.abs(v) / max) * 100)}%"></i></div></div>`).join('')}` : ''}
       <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">התאמה מול הבנק (תאריך חיוב)</summary>
@@ -135,7 +135,7 @@ function analysisView() {
       <div class="muted" style="font-size:.82rem;margin:2px 0 10px">ממוצע חודשי ${money(g.total / monthsN)} · ${monthsN} חודשים בנתונים</div>
       ${cats.map(([n, v]) => `<div style="display:flex;justify-content:space-between;font-size:.88rem;padding:3px 0"><span>${esc(n)}</span><b class="amt">${money(v)}</b></div>`).join('')}
       <div class="muted" style="font-size:.8rem;margin-top:8px">הגדולים: ${top.map(([n, v]) => `${esc(n)} ${money(v)}`).join(' · ')}</div></div>`;
-  }).join('') : `<div class="card"><h2>קבוצות הוצאה</h2><div class="muted" style="font-size:.9rem">כדי לראות למשל כמה עולה הרכב: פתח <a href="#" data-cats style="color:var(--green)">ניהול קטגוריות</a>, צור קטגוריות (דלק, ביטוח רכב, כבישי אגרה, חניה) ורשום בשדה "קבוצה" את הערך "רכב".</div></div>`;
+  }).join('') : `<div class="card"><h2>קבוצות הוצאה</h2><div class="muted" style="font-size:.9rem">כדי לראות למשל כמה עולה הרכב: פתח <a href="#" data-cats style="color:var(--pos)">ניהול קטגוריות</a>, צור קטגוריות (דלק, ביטוח רכב, כבישי אגרה, חניה) ורשום בשדה "קבוצה" את הערך "רכב".</div></div>`;
 
   return `<h1>ניתוח</h1>
   <div class="card ask"><h2>שאל על הכסף שלך</h2>
@@ -147,7 +147,7 @@ function analysisView() {
       <div class="muted" style="font-size:.85rem;margin:-6px 0 10px">${subs.filter((s) => !s.type.startsWith('תשלומים')).length} חיובים קבועים · כ־${money(subTotal)} בחודש (${money(subTotal * 12)} בשנה)</div>${subHtml}</div>
     <div class="grid-col">${groupHtml}
       ${ch.length ? `<div class="card"><h2>מה השתנה מהחודש הקודם</h2>${ch.map((x) => `<div style="display:flex;justify-content:space-between;font-size:.9rem;padding:4px 0"><span>${esc(x.name)}</span>
-        <b class="amt" style="color:${x.delta > 0 ? 'var(--red)' : 'var(--green)'}">${x.delta > 0 ? '▲' : '▼'} ${money(Math.abs(x.delta))}</b></div>`).join('')}
+        <b class="amt" style="color:${x.delta > 0 ? 'var(--red)' : 'var(--pos)'}">${x.delta > 0 ? '▲' : '▼'} ${money(Math.abs(x.delta))}</b></div>`).join('')}
         <div class="muted" style="font-size:.78rem;margin-top:6px">${MONTHS[Number(ms[0].slice(5)) - 1]} מול ${MONTHS[Number(ms[1].slice(5)) - 1]}</div></div>` : ''}
     </div>
   </div>`;

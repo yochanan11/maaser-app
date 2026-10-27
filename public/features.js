@@ -72,14 +72,14 @@ function overviewView() {
     ${bal ? kpi(`יתרה בבנק · ${fmtDate(bal.date)}`, signed(bal.value), bal.value < 0 ? 'var(--red)' : '') : ''}
     ${kpi('הכנסות', money(s.income))}
     ${kpi('הוצאות', money(s.expense))}
-    ${kpi('נשאר החודש', signed(s.left), s.left < 0 ? 'var(--red)' : 'var(--green)')}
+    ${kpi('נשאר החודש', signed(s.left), s.left < 0 ? 'var(--red)' : 'var(--pos)')}
     <div class="kpi" data-tab="history" style="cursor:pointer"><span>${t.left < 0 ? 'מעשר: נתת יותר ב־' : 'מעשר: נשאר לתת'}</span><b>${money(Math.abs(t.left))}</b></div>
   </div>
   <div class="dense">
     <div class="card"><h2>הכנסות מול הוצאות</h2>${barsSvg(trend)}
-      <div class="legend"><span><i style="background:var(--soft)"></i>הכנסות</span><span><i style="background:var(--green2)"></i>הוצאות</span></div></div>
+      <div class="legend"><span><i style="background:var(--owed)"></i>הכנסות</span><span><i style="background:var(--green2)"></i>הוצאות</span></div></div>
     <div class="card"><h2>איפה הולך הכסף</h2>
-      ${list.slice(0, 9).map(([n, v]) => `<div class="catline"><div><span>${esc(n)}${prev && prev[n] ? ` <small style="color:${v > prev[n] ? 'var(--red)' : 'var(--green)'}">${v > prev[n] ? '▲' : '▼'}${Math.round(Math.abs(v - prev[n]) / prev[n] * 100)}%</small>` : ''}</span><b class="amt">${money(v)}</b></div>
+      ${list.slice(0, 9).map(([n, v]) => `<div class="catline"><div><span>${esc(n)}${prev && prev[n] ? ` <small style="color:${v > prev[n] ? 'var(--red)' : 'var(--pos)'}">${v > prev[n] ? '▲' : '▼'}${Math.round(Math.abs(v - prev[n]) / prev[n] * 100)}%</small>` : ''}</span><b class="amt">${money(v)}</b></div>
         <div class="bar"><i style="width:${Math.max(3, (v / max) * 100)}%"></i></div></div>`).join('') || '<div class="empty">אין הוצאות בחודש הזה</div>'}
       ${s.saving ? `<div class="muted" style="font-size:.8rem;margin-top:6px">חיסכון ופנסיה: ${money(s.saving)}</div>` : ''}</div>
     <div class="card" data-tab="analysis" style="cursor:pointer"><h2>מנויים והוצאות קבועות</h2>
